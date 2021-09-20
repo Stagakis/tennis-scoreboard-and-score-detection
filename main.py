@@ -62,15 +62,16 @@ if __name__ == '__main__':
             temp_bbox = json_data[str(index)]["bbox"]
             temp_bbox[1] = temp_bbox[1] - height / 2
             temp_bbox[3] = temp_bbox[3] - height / 2
+            json_data[str(index)]["bbox"] = temp_bbox
 
             if (index < index_switch):
                 cv2.imwrite(os.path.join(output_root_folder, "train", str(train_i) + ".png"), frame)
-                train_dict[str(train_i)] = temp_bbox  # json_data[str(index)]
+                train_dict[str(train_i)] = json_data[str(index)]
 
                 train_i = train_i + 1
             else:
                 cv2.imwrite(os.path.join(output_root_folder, "eval", str(eval_i) + ".png"), frame)
-                eval_dict[str(eval_i)] = temp_bbox  # json_data[str(index)]
+                eval_dict[str(eval_i)] = json_data[str(index)]
                 eval_i = eval_i + 1
             index = index + 1
         else:
