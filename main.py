@@ -18,7 +18,7 @@ def create_output_folders(root_folder):
         pass  # Folder is already created
 
 
-data_folder = "C:/Users/Stagakis/Desktop/CV-interview-scoreboard-task-material/data"
+data_folder = "/home/beastmaster/Downloads/CV-interview-scoreboard-task-material/data"
 video_file_name = "top-100-shots-rallies-2018-atp-season.mp4"
 json_file_name = "top-100-shots-rallies-2018-atp-season-scoreboard-annotations.json"
 
@@ -55,13 +55,22 @@ if __name__ == '__main__':
             except KeyError:
                 index = index + 1
                 continue
+
+            height, width, channels = frame.shape
+            frame = frame[int(height / 2):height, 0:int(width / 2)]
+
+            temp_bbox = json_data[str(index)]["bbox"]
+            temp_bbox[1] = temp_bbox[1] - height / 2
+            temp_bbox[3] = temp_bbox[3] - height / 2
+
             if (index < index_switch):
                 cv2.imwrite(os.path.join(output_root_folder, "train", str(train_i) + ".png"), frame)
-                train_dict[str(train_i)] = json_data[str(index)]
+                train_dict[str(train_i)] = temp_bbox  # json_data[str(index)]
+
                 train_i = train_i + 1
             else:
                 cv2.imwrite(os.path.join(output_root_folder, "eval", str(eval_i) + ".png"), frame)
-                eval_dict[str(eval_i)] = json_data[str(index)]
+                eval_dict[str(eval_i)] = temp_bbox  # json_data[str(index)]
                 eval_i = eval_i + 1
             index = index + 1
         else:
