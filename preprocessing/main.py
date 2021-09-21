@@ -25,7 +25,7 @@ json_file_name = "top-100-shots-rallies-2018-atp-season-scoreboard-annotations.j
 video_file_path = os.path.join(data_folder, video_file_name)
 json_file_path = os.path.join(data_folder, json_file_name)
 
-output_root_folder = os.path.join(data_folder, "../mdata")
+output_root_folder = os.path.join(data_folder, "../mdata_grayscale")
 
 if __name__ == '__main__':
     create_output_folders(output_root_folder)
@@ -49,14 +49,16 @@ if __name__ == '__main__':
 
     while (cap.isOpened()):
         ret, frame = cap.read()
+
         if ret == True:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             try:
                 frame_data = json_data[str(index)]  # check to see if there is a scoreboard in this frame
             except KeyError:
                 index = index + 1
                 continue
 
-            height, width, channels = frame.shape
+            height, width = frame.shape
             frame = frame[int(height / 2):height, 0:int(width / 2)]
 
             temp_bbox = json_data[str(index)]["bbox"]
