@@ -28,11 +28,11 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
     for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
-        test_img = imgs[0]
-        test_size = sizes[0]
-        print([i for i in sizes])
-        print([i.shape for i in imgs])
-        print(imgs[0][:,:,:])
+        #test_img = imgs[0]
+        #test_size = sizes[0]
+        #print([i for i in sizes])
+        #print([i.shape for i in imgs])
+        #print(imgs[0][:,:,:])
         pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
         gt_bboxes += list(gt_bboxes_.numpy())
         gt_labels += list(gt_labels_.numpy())
@@ -80,7 +80,7 @@ def train(**kwargs):
         print(epoch)
         trainer.reset_meters()
         for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
-            break  # TODO remove
+
             scale = at.scalar(scale)
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             trainer.train_step(img, bbox, label, scale)
