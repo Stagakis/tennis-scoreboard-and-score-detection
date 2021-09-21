@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import json
 import os
-
+import statistics
 
 def bb_intersection_over_union(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
@@ -28,7 +28,7 @@ def bb_intersection_over_union(boxA, boxB):
     return iou
 
 
-def getPreprocessedImage(img):
+def get_preprocessedImage(img):
     rgbArray = np.zeros((3, 540, 960), 'uint8')
     rgbArray[0, ...] = img.copy()
     rgbArray[1, ...] = img.copy()
@@ -38,7 +38,7 @@ def getPreprocessedImage(img):
     return rgbArray
 
 
-def extractClasses(img, bboxes):
+def extract_classes(img, bboxes):
     box = bboxes[0]
 
     height = box[2] - box[0]
@@ -54,9 +54,22 @@ def extractClasses(img, bboxes):
     return box, serv, noserv
 
 
+# This function takes a list of strings (e.g. ['1 3', '2', '3']) and outputs a single string in the format
+# of the scores in the annotations (e.g. '1-3-2-3') for easy comparisson
+def get_score_in_dbformat(score):
+    out = ""
+    for num in score:
+        if ' ' in num:
+            out = out + get_score_in_dbformat(num.split(' ')) + '-'
+        else:
+            out = out + num + '-'
+    return out[:-1]  # remove the last since its bound to be a '-' character
+
+
 list_of_IoU = []
 number_of_correct_name_detections = 0
 number_of_correct_score_detections = 0
+visualize = False
 
 if __name__ == "__main__":
     reader = easyocr.Reader(['en'])
@@ -74,10 +87,11 @@ if __name__ == "__main__":
     json_data = json.load(f)
 
     for i in range(len(json_data)):
+        print(i)
         img_file = os.path.join(data_folder, str(i) + ".png")
         img = cv2.imread(img_file, 0)  # .reshape((3, 540, 960))
 
-        img_cuda = getPreprocessedImage(img)
+        img_cuda = get_preprocessedImage(img)
         pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict([img_cuda], [[540, 960]])
         pred_bboxes_ = pred_bboxes_[0]
         gt_boxes = json_data[str(i)]["bbox"]
@@ -85,31 +99,38 @@ if __name__ == "__main__":
 
         list_of_IoU.append(bb_intersection_over_union(gt_boxes, pred_bboxes_[0]))
 
-        cv2.imshow("Image", img)
-        score, player1, player2 = extractClasses(img, pred_bboxes_)
+
+        score, player1, player2 = extract_classes(img, pred_bboxes_)
 
         score_board_ocr_result = reader.readtext(score, detail=0)
         player1_ocr_result = reader.readtext(player1, detail=0)
         player2_ocr_result = reader.readtext(player2, detail=0)
 
-
-        if json_data[str(i)]["name_1"] in player1_ocr_result:
+        if json_data[str(i)]["name_1"] == player1_ocr_result:
             number_of_correct_name_detections = number_of_correct_name_detections + 1
-        if json_data[str(i)]["name_2"] in player2_ocr_result:
+        if json_data[str(i)]["name_2"] == player2_ocr_result:
             number_of_correct_name_detections = number_of_correct_name_detections + 1
-
 
         # format scores for easy detection
-        player1_score = player1_ocr_result[0:]
-        player2_score = player2_ocr_result[0:]
+        player1_score = get_score_in_dbformat(player1_ocr_result[1:])
+        player2_score = get_score_in_dbformat(player2_ocr_result[1:])
 
-        if json_data[str(1)]["score1"] in player1_ocr_result:
+        if json_data[str(1)]["score_1"] in player1_score:
             number_of_correct_score_detections = number_of_correct_score_detections + 1
-        if json_data[str(1)]["score2"] in player2_ocr_result:
+        if json_data[str(1)]["score_2"] in player2_score:
             number_of_correct_score_detections = number_of_correct_score_detections + 1
 
-        cv2.imshow("BBOX", score)
-        cv2.imshow("player1", player1)
-        cv2.imshow("player2", player2)
+        if visualize:
+            cv2.imshow("Image", img)
+            cv2.imshow("BBOX", score)
+            cv2.imshow("player1", player1)
+            cv2.imshow("player2", player2)
 
-        cv2.waitKey(0)
+            cv2.waitKey(0)
+
+    print(len(list_of_IoU))
+    print(statistics.stdev(list_of_IoU))
+    print(statistics.mean(list_of_IoU))
+    print(statistics.median(list_of_IoU))
+    print(number_of_correct_score_detections)
+    print(number_of_correct_name_detections)
