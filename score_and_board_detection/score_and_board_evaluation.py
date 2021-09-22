@@ -7,6 +7,7 @@ import numpy as np
 import json
 import os
 import statistics
+import time
 
 def bb_intersection_over_union(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
@@ -70,6 +71,7 @@ list_of_IoU = []
 number_of_correct_name_detections = 0
 number_of_correct_score_detections = 0
 visualize = False
+times = []
 
 if __name__ == "__main__":
     reader = easyocr.Reader(['en'])
@@ -87,11 +89,13 @@ if __name__ == "__main__":
     json_data = json.load(f)
 
     for i in range(len(json_data)):
-        print(i)
         img_file = os.path.join(data_folder, str(i) + ".png")
         img = cv2.imread(img_file, 0)  # .reshape((3, 540, 960))
 
         img_cuda = get_preprocessedImage(img)
+
+        tic = time.time()
+
         pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict([img_cuda], [[540, 960]])
         pred_bboxes_ = pred_bboxes_[0]
         gt_boxes = json_data[str(i)]["bbox"]
@@ -115,22 +119,30 @@ if __name__ == "__main__":
         player1_score = get_score_in_dbformat(player1_ocr_result[1:])
         player2_score = get_score_in_dbformat(player2_ocr_result[1:])
 
-        if json_data[str(1)]["score_1"] in player1_score:
+        if json_data[str(i)]["score_1"] in player1_score:
             number_of_correct_score_detections = number_of_correct_score_detections + 1
-        if json_data[str(1)]["score_2"] in player2_score:
+        if json_data[str(i)]["score_2"] in player2_score:
             number_of_correct_score_detections = number_of_correct_score_detections + 1
 
+        toc = time.time()
+        times.append(toc - tic)
         if visualize:
             cv2.imshow("Image", img)
             cv2.imshow("BBOX", score)
             cv2.imshow("player1", player1)
             cv2.imshow("player2", player2)
-
+            print(score_board_ocr_result)
             cv2.waitKey(0)
 
-    print(len(list_of_IoU))
-    print(statistics.stdev(list_of_IoU))
-    print(statistics.mean(list_of_IoU))
-    print(statistics.median(list_of_IoU))
-    print(number_of_correct_score_detections)
-    print(number_of_correct_name_detections)
+        print(i)
+        print(times[-1])
+    print("================== RESULTS ================")
+    print("Number of samples: {}".format(len(list_of_IoU)))
+    print("Execution times: ")
+    print("Mean execution time: {}".format(statistics.mean(times)))
+
+    print("IoU stdev: {} ".format(statistics.stdev(list_of_IoU)))
+    print("IoU mean: {} ".format(statistics.mean(list_of_IoU)))
+    print("IoU median: {} ".format(statistics.median(list_of_IoU)))
+    print("Percentage of correct score detection: {} ".format(number_of_correct_score_detections/(2*len(list_of_IoU))))
+    print("Percentage of correct name detection: {} ".format(number_of_correct_name_detections/(2*len(list_of_IoU))))
